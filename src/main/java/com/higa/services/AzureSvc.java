@@ -1,5 +1,7 @@
 package com.higa.services;
 
+import com.azure.storage.queue.QueueClient;
+import com.azure.storage.queue.QueueClientBuilder;
 import lombok.Getter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -22,6 +24,15 @@ public class AzureSvc {
     @Getter
     @Value("${azure.queue.name}")
     private String queueName;
+
+    private
+
+    public QueueClient getAzQueueClient(){
+        return new QueueClientBuilder()
+                .connectionString(getAzConnStr())
+                .queueName(getQueueName())
+                .buildClient();
+    }
 
     public String getAzConnStr(){
         return new StringBuilder()

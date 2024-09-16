@@ -3,6 +3,7 @@ package com.higa.services;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -12,15 +13,18 @@ import org.springframework.web.client.RestTemplate;
 @Service
 public class GoogleSvc {
 
-//    private final RestTemplate restTemplate;
+    @Value("${google.api.key}")
+    private String apiKey;
 
-//    @Autowired
-//    public GoogleSvc(RestTemplate restTemplate) {
-//        this.restTemplate = restTemplate;
-//    }
+    private final RestTemplate restTemplate;
 
-    public void readCertNasc(String certNascImg){
-        String url = "https://vision.googleapis.com/v1/images:annotate?key=GOOGLE_VISION_API_HERE";
+    @Autowired
+    public GoogleSvc(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
+
+    public JsonObject readCertNasc(String certNascImg){
+        String url = "https://vision.googleapis.com/v1/images:annotate?key=" + apiKey;
 
         JsonObject jsonObject = new JsonObject();
         JsonArray jsonArray = new JsonArray();
@@ -31,14 +35,14 @@ public class GoogleSvc {
         jsonArrayFeatures.add(jsonObjectType);
         jsonObject2.add("features", jsonArrayFeatures);
         JsonObject jsonObjectImage = new JsonObject();
-        jsonObjectImage.addProperty("content", "BASE_64_IMG_TEST");
+        jsonObjectImage.addProperty("content", certNascImg);
         jsonObject2.add("image", jsonObjectImage);
         jsonArray.add(jsonObject2);
         jsonObject.add("requests", jsonArray);
 
         HttpEntity<JsonObject> request = new HttpEntity<>(jsonObject);
 
-//        ResponseEntity<JsonObject> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, JsonObject.class);
-//        JsonObject responseBody = responseEntity.getBody();
+        ResponseEntity<JsonObject> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, JsonObject.class);
+        return responseEntity.getBody();
     }
 }
