@@ -45,4 +45,12 @@ public class GoogleSvc {
         ResponseEntity<JsonObject> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, JsonObject.class);
         return responseEntity.getBody();
     }
+
+    public String getCertNascContentFromResponse(JsonObject certNasc){
+        JsonArray array1 = certNasc.get("responses").getAsJsonArray();
+        JsonObject object2 = array1.get(0).getAsJsonObject();
+        JsonArray array2 = object2.get("textAnnotations").getAsJsonArray();
+        JsonObject object3 = array2.get(0).getAsJsonObject();
+        return object3.get("description").getAsString();
+    }
 }

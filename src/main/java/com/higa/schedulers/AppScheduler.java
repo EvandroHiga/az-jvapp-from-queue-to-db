@@ -1,7 +1,10 @@
 package com.higa.schedulers;
 
+import com.azure.data.tables.TableClient;
+import com.azure.data.tables.TableClientBuilder;
 import com.azure.data.tables.TableServiceClient;
 import com.azure.data.tables.TableServiceClientBuilder;
+import com.azure.data.tables.models.TableEntity;
 import com.azure.storage.queue.QueueClient;
 import com.azure.storage.queue.QueueClientBuilder;
 import com.azure.storage.queue.models.QueueMessageItem;
@@ -15,6 +18,8 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
+import java.util.HashMap;
+import java.util.Map;
 
 @Component
 @EnableScheduling
@@ -31,22 +36,32 @@ public class AppScheduler {
 
     @Scheduled(fixedDelayString = "${read.queue.delay.in.milli}")
     public void getMsgFromQueueInsertIntoDb(){
+        createTable();
+
         String msgFromQueue = getMessageFromQueue();
         JsonObject object1 = googleSvc.readCertNasc(msgFromQueue);
-        JsonArray array1 = object1.get("responses").getAsJsonArray();
-        JsonObject object2 = array1.get(0).getAsJsonObject();
-        JsonArray array2 = object2.get("textAnnotations").getAsJsonArray();
-        JsonObject object3 = array2.get(0).getAsJsonObject();
-        String certNascContent = object3.get("description").getAsString();
-
+        String certNascContent = googleSvc.getCertNascContentFromResponse(object1);
         JsonObject responseObj = getOnlyImportantInfo(certNascContent);
 
+        Map<String, Object> tableValues = new HashMap<>();
 
+        tableValues.put("cpf", responseObj.get("cpf"));
+        tableValues.put("nome", responseObj.get("nome"));
+        tableValues.put("matricula", responseObj.get("matricula"));
+        tableValues.put("dataNasc", responseObj.get("dataNasc"));
+        tableValues.put("nomeMae", responseObj.get("nomeMae"));
 
-        //TODO Guardar no banco
+        TableClient tableClient = new TableClientBuilder()
+                .connectionString(azureSvc.getAzConnStr())
+                .tableName("db_cert_nasc_info")
+                .buildClient();
+
+        TableEntity tableEntity = new TableEntity("",responseObj.get("cpf").getAsString()).setProperties(tableValues);
+
+        tableClient.createEntity(tableEntity);
     }
 
-    private String getMessageFromQueue(){
+    public String getMessageFromQueue(){
         QueueClient queueClient = azureSvc.getAzQueueClient();
         QueueMessageItem queueMessage = queueClient.receiveMessage();
         final String msg = new String(queueMessage.getBody().toBytes(), StandardCharsets.UTF_8);
@@ -59,6 +74,14 @@ public class AppScheduler {
         JsonObject object = new JsonObject();
 
         return object;
+    }
+
+    // TODO remover no futuro
+    private void createTable(){
+        TableServiceClient tableServiceClient = new TableServiceClientBuilder()
+                .connectionString(azureSvc.getAzConnStr())
+                .buildClient();
+        tableServiceClient.createTableIfNotExists("db_cert_nasc_info");
     }
 
 }

@@ -25,8 +25,6 @@ public class AzureSvc {
     @Value("${azure.queue.name}")
     private String queueName;
 
-    private
-
     public QueueClient getAzQueueClient(){
         return new QueueClientBuilder()
                 .connectionString(getAzConnStr())
