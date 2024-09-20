@@ -26,9 +26,9 @@ public class GoogleSvc {
         this.restTemplate = restTemplate;
     }
 
-    public JsonObject readCertNasc(String certNascImg){
+    public JsonObject readImageCertNasc(String certNascImgBase64){
         final String url = "https://vision.googleapis.com/v1/images:annotate?key=" + apiKey;
-        final String reqBodyStr = parseToGoogleVisionRequest(certNascImg).toString();
+        final String reqBodyStr = parseToGoogleVisionRequest(certNascImgBase64).toString();
         final HttpEntity<String> request = new HttpEntity<>(reqBodyStr);
 
         ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, String.class);

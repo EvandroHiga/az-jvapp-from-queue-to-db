@@ -20,19 +20,8 @@ public class AzureSvc {
     private String storageAccountKey;
 
     @Getter
-    @Value("${azure.queue.name}")
-    private String queueName;
-
-    @Getter
     @Value("${azure.container.name}")
     private String containerName;
-
-//    public QueueClient getAzQueueClient(){
-//        return new QueueClientBuilder()
-//                .connectionString(getAzConnStr())
-//                .queueName(getQueueName())
-//                .buildClient();
-//    }
 
     public String getAzConnStr(){
         return new StringBuilder()
