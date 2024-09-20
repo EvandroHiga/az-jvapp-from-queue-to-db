@@ -23,7 +23,7 @@ public class AppSvc {
         this.googleSvc = googleSvc;
     }
 
-    public ResponseEntity<Object> readAndStoreCertNascBase64(ReqBody reqBody){
+    public ResponseEntity<Void> readAndStoreCertNascBase64(ReqBody reqBody){
         JsonObject responseBodyJson = googleSvc.readImageCertNasc(reqBody.getCert_nasc_base64());
         String certNascContent = googleSvc.getCertNascContentFromResponse(responseBodyJson);
 
@@ -45,6 +45,7 @@ public class AppSvc {
                 certNascInfosJsonObj.toString().length(),
                 true);
 
+        // TODO Mandar obj json guardado no response body
         return ResponseEntity.status(201).build();
     }
 

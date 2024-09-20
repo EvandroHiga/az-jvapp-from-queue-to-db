@@ -1,6 +1,5 @@
 package com.higa.controller;
 
-import com.google.gson.JsonObject;
 import com.higa.models.ReqBody;
 import com.higa.services.AppSvc;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,8 +19,7 @@ public class AppController {
     }
 
     @PostMapping
-    public ResponseEntity<JsonObject> readAndStoreCertNascBase64(@RequestBody ReqBody reqBody){
-        appSvc.readAndStoreCertNascBase64(reqBody);
-        return null; //TODO
+    public ResponseEntity<Void> readAndStoreCertNascBase64(@RequestBody ReqBody reqBody){
+        return appSvc.readAndStoreCertNascBase64(reqBody);
     }
 }
