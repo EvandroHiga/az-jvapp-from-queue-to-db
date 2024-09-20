@@ -2,15 +2,18 @@ package com.higa.services;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
-@Service
+import java.util.Objects;
+
+@Component
 public class GoogleSvc {
 
     @Value("${google.api.key}")
@@ -24,33 +27,37 @@ public class GoogleSvc {
     }
 
     public JsonObject readCertNasc(String certNascImg){
-        String url = "https://vision.googleapis.com/v1/images:annotate?key=" + apiKey;
+        final String url = "https://vision.googleapis.com/v1/images:annotate?key=" + apiKey;
+        final String reqBodyStr = parseToGoogleVisionRequest(certNascImg).toString();
+        final HttpEntity<String> request = new HttpEntity<>(reqBodyStr);
 
+        ResponseEntity<String> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, String.class);
+
+        return JsonParser.parseString(Objects.requireNonNull(responseEntity.getBody())).getAsJsonObject();
+    }
+
+    private JsonObject parseToGoogleVisionRequest(String certNascImg){
         JsonObject jsonObject = new JsonObject();
-        JsonArray jsonArray = new JsonArray();
-        JsonObject jsonObject2 = new JsonObject();
-        JsonArray jsonArrayFeatures = new JsonArray();
-        JsonObject jsonObjectType = new JsonObject();
-        jsonObjectType.addProperty("type", "DOCUMENT_TEXT_DETECTION");
-        jsonArrayFeatures.add(jsonObjectType);
-        jsonObject2.add("features", jsonArrayFeatures);
+        JsonArray array = new JsonArray();
+        JsonObject object = new JsonObject();
+        JsonArray arrayFeatures = new JsonArray();
+        JsonObject objectType = new JsonObject();
+        objectType.addProperty("type", "DOCUMENT_TEXT_DETECTION");
+        arrayFeatures.add(objectType);
+        object.add("features", arrayFeatures);
         JsonObject jsonObjectImage = new JsonObject();
         jsonObjectImage.addProperty("content", certNascImg);
-        jsonObject2.add("image", jsonObjectImage);
-        jsonArray.add(jsonObject2);
-        jsonObject.add("requests", jsonArray);
-
-        HttpEntity<JsonObject> request = new HttpEntity<>(jsonObject);
-
-        ResponseEntity<JsonObject> responseEntity = restTemplate.exchange(url, HttpMethod.POST, request, JsonObject.class);
-        return responseEntity.getBody();
+        object.add("image", jsonObjectImage);
+        array.add(object);
+        jsonObject.add("requests", array);
+        return jsonObject;
     }
 
     public String getCertNascContentFromResponse(JsonObject certNasc){
-        JsonArray array1 = certNasc.get("responses").getAsJsonArray();
-        JsonObject object2 = array1.get(0).getAsJsonObject();
-        JsonArray array2 = object2.get("textAnnotations").getAsJsonArray();
-        JsonObject object3 = array2.get(0).getAsJsonObject();
-        return object3.get("description").getAsString();
+        JsonArray arrayResponses = certNasc.get("responses").getAsJsonArray();
+        JsonObject object1 = arrayResponses.get(0).getAsJsonObject();
+        JsonArray arrayTextAnnotations = object1.get("textAnnotations").getAsJsonArray();
+        JsonObject objectContent = arrayTextAnnotations.get(0).getAsJsonObject();
+        return objectContent.get("description").getAsString();
     }
 }
