@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 @Service
 public class AppSvc {
@@ -23,15 +24,13 @@ public class AppSvc {
         this.googleSvc = googleSvc;
     }
 
-    public ResponseEntity<Void> readAndStoreCertNascBase64(ReqBody reqBody){
-        JsonObject responseBodyJson = googleSvc.readImageCertNasc(reqBody.getCert_nasc_base64());
+    public ResponseEntity<String> readAndStoreCertNascBase64(ReqBody reqBody){
+        JsonObject responseBodyJson = googleSvc.readImageCertNasc(reqBody.getCertNascBase64());
         String certNascContent = googleSvc.getCertNascContentFromResponse(responseBodyJson);
 
-        // TODO guardar: cpf, nome, matricula, dataNasc, nomeMae
         JsonObject certNascInfosJsonObj = getImportantInfoFromCertNasc(certNascContent);
 
-        //TODO Gerar nome do arquivo
-        String nomeArquivo = "arquivo.json";
+        String nomeArquivo = certNascInfosJsonObj.get("cpf").getAsString() + " " + Instant.now();
 
         BlobContainerClient containerClient =
                 new BlobContainerClientBuilder()
@@ -45,14 +44,28 @@ public class AppSvc {
                 certNascInfosJsonObj.toString().length(),
                 true);
 
-        // TODO Mandar obj json guardado no response body
-        return ResponseEntity.status(201).build();
+        return ResponseEntity.status(201).body(certNascInfosJsonObj.toString());
     }
 
-
-    private JsonObject getImportantInfoFromCertNasc(String certNascContent){
+    public JsonObject getImportantInfoFromCertNasc(String certNascContent){
         JsonObject object = new JsonObject();
-        object.addProperty("status", "sucesso! :)");
+        object.addProperty("cpf", getValueIfExists(certNascContent, "CPF"));
+        object.addProperty("nome", getValueIfExists(certNascContent, "NOME"));
+        object.addProperty("matricula", getValueIfExists(certNascContent, "MATRICULA"));
+        object.addProperty("dataNasc", getValueIfExists(certNascContent, "DATA DE NASCIMENTO"));
+        object.addProperty("raw_data", certNascContent);
         return object;
+    }
+
+    private String getValueIfExists(String certNascContent, String subStr){
+        int begin = certNascContent.indexOf(subStr);
+        if(begin >= 0){
+            int finish = certNascContent.indexOf("\n", begin);
+            int beginValue = begin + (finish - begin) + 1;
+            int finishValue = certNascContent.indexOf("\n", beginValue);
+            return certNascContent.substring(beginValue, finishValue);
+        } else {
+            return "";
+        }
     }
 }

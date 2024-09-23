@@ -19,7 +19,7 @@ public class AppController {
     }
 
     @PostMapping
-    public ResponseEntity<Void> readAndStoreCertNascBase64(@RequestBody ReqBody reqBody){
+    public ResponseEntity<String> readAndStoreCertNascBase64(@RequestBody ReqBody reqBody){
         return appSvc.readAndStoreCertNascBase64(reqBody);
     }
 }
