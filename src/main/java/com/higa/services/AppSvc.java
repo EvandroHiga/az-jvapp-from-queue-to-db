@@ -1,17 +1,14 @@
 package com.higa.services;
 
-import com.azure.storage.blob.BlobClient;
-import com.azure.storage.blob.BlobContainerClient;
-import com.azure.storage.blob.BlobContainerClientBuilder;
 import com.google.gson.JsonObject;
 import com.higa.models.ReqBody;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.io.ByteArrayInputStream;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 @Service
 public class AppSvc {
@@ -27,27 +24,14 @@ public class AppSvc {
     public ResponseEntity<String> readAndStoreCertNascBase64(ReqBody reqBody){
         JsonObject responseBodyJson = googleSvc.readImageCertNasc(reqBody.getCertNascBase64());
         String certNascContent = googleSvc.getCertNascContentFromResponse(responseBodyJson);
-
-        JsonObject certNascInfosJsonObj = getImportantInfoFromCertNasc(certNascContent);
-
-        String nomeArquivo = certNascInfosJsonObj.get("cpf").getAsString() + " " + Instant.now();
-
-        BlobContainerClient containerClient =
-                new BlobContainerClientBuilder()
-                        .connectionString(azureSvc.getAzConnStr())
-                        .containerName(azureSvc.getContainerName())
-                        .buildClient();
-        BlobClient blobClient = containerClient.getBlobClient(nomeArquivo);
-
-        blobClient.upload(
-                new ByteArrayInputStream(certNascInfosJsonObj.toString().getBytes(StandardCharsets.UTF_8)),
-                certNascInfosJsonObj.toString().length(),
-                true);
-
-        return ResponseEntity.status(201).body(certNascInfosJsonObj.toString());
+        JsonObject certNascImportantContent = getImportantInfoFromCertNasc(certNascContent);
+        azureSvc.uploadFileToAzContainer(
+                certNascImportantContent.get("cpf").getAsString() + "_" + DateTimeFormatter.ofPattern("dd-MM-yy_hh-mm-ss").withZone(ZoneId.systemDefault()).format(Instant.now()) + ".json",
+                certNascImportantContent);
+        return ResponseEntity.status(201).body(certNascImportantContent.toString());
     }
 
-    public JsonObject getImportantInfoFromCertNasc(String certNascContent){
+    private JsonObject getImportantInfoFromCertNasc(String certNascContent){
         JsonObject object = new JsonObject();
         object.addProperty("cpf", getValueIfExists(certNascContent, "CPF"));
         object.addProperty("nome", getValueIfExists(certNascContent, "NOME"));
@@ -58,7 +42,7 @@ public class AppSvc {
     }
 
     private String getValueIfExists(String certNascContent, String subStr){
-        int begin = certNascContent.indexOf(subStr);
+        int begin = certNascContent.toLowerCase().indexOf(subStr.toLowerCase());
         if(begin >= 0){
             int finish = certNascContent.indexOf("\n", begin);
             int beginValue = begin + (finish - begin) + 1;
